@@ -35,50 +35,35 @@ const uploadsRoutes = require('./modules/uploads/uploads.routes');
 
 const app = express();
 
-// ─── Security ───────────────────────────────────────────────────
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-}));
-
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:8081',
-  'http://localhost:19006',
-  'https://repairbee.onrender.com',
-];
-
-if (process.env.ALLOWED_ORIGINS) {
-  process.env.ALLOWED_ORIGINS.split(',').forEach((o) => {
-    if (o.trim()) allowedOrigins.push(o.trim());
-  });
-}
+// ─── Universal CORS & Preflight Handling ─────────────────────────
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow non-browser requests (e.g. mobile app, curl, Postman)
-    if (!origin) return callback(null, true);
-
-    // Allow all vercel preview and production deployments (*.vercel.app), localhost, or configured origins
-    if (
-      origin.endsWith('.vercel.app') ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1') ||
-      allowedOrigins.includes(origin)
-    ) {
-      return callback(null, true);
-    }
-
-    // For portfolio demo purposes, allow all origins
-    return callback(null, true);
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+
+// ─── Security ───────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false,
+}));
 
 // ─── Body Parsing ───────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
