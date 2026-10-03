@@ -11,7 +11,7 @@ const hostIp = hostUri ? hostUri.split(':')[0] : '172.19.38.32';
 
 const API_BASE_URL = __DEV__
   ? `http://${hostIp}:3000/api/v1`
-  : 'https://api.repairbee.com/api/v1';
+  : 'https://repairbee.onrender.com/api/v1';
 
 const API_URL = API_BASE_URL;
 
