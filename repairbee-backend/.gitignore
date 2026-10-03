@@ -1,6 +1,7 @@
 node_modules/
 .env
-uploads/
+/uploads/
+!src/modules/uploads/
 *.log
 dist/
 coverage/
