@@ -36,11 +36,49 @@ const uploadsRoutes = require('./modules/uploads/uploads.routes');
 const app = express();
 
 // ─── Security ───────────────────────────────────────────────────
-app.use(helmet());
-app.use(cors({
-  origin: env.isDev ? '*' : process.env.ALLOWED_ORIGINS?.split(','),
-  credentials: true,
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'https://repairbee.onrender.com',
+];
+
+if (process.env.ALLOWED_ORIGINS) {
+  process.env.ALLOWED_ORIGINS.split(',').forEach((o) => {
+    if (o.trim()) allowedOrigins.push(o.trim());
+  });
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests (e.g. mobile app, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    // Allow all vercel preview and production deployments (*.vercel.app), localhost, or configured origins
+    if (
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      allowedOrigins.includes(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    // For portfolio demo purposes, allow all origins
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // ─── Body Parsing ───────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
