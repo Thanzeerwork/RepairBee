@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "RepairBee",
+    "slug": "repairbee-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "repairbee",
+    "splash": {
+      "backgroundColor": "#ffffff",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.repairbee.customer",
+      "infoPlist": {
+        "NSCameraUsageDescription": "RepairBee needs camera access to take photos of your device for repair requests.",
+        "NSPhotoLibraryUsageDescription": "RepairBee needs access to your photos to upload images of your device.",
+        "NSLocationWhenInUseUsageDescription": "RepairBee needs your location to find nearby repair shops."
+      }
+    },
+    "android": {
+      "package": "com.repairbee.customer",
+      "adaptiveIcon": {
+        "backgroundColor": "#d97706",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-image-picker",
+      "expo-location",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#0f172a"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

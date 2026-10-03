@@ -1,0 +1,10 @@
+const { Router } = require('express');
+const ctrl = require('./earnings.controller');
+const { authenticate, authorize } = require('../../middleware/auth');
+const { ROLES } = require('../../utils/constants');
+const router = Router();
+router.use(authenticate);
+router.get('/', authorize(ROLES.SHOP_OWNER, ROLES.DELIVERY_PARTNER), ctrl.getEarnings);
+router.get('/shop', authorize(ROLES.SHOP_OWNER), ctrl.getEarnings);
+router.get('/partner', authorize(ROLES.DELIVERY_PARTNER), ctrl.getEarnings);
+module.exports = router;

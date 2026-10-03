@@ -1,0 +1,14 @@
+const { Router } = require('express');
+const ctrl = require('./withdrawals.controller');
+const { authenticate, authorize } = require('../../middleware/auth');
+const { validate } = require('../../middleware/validate');
+const { requestValidator, processValidator } = require('./withdrawals.validators');
+const { ROLES } = require('../../utils/constants');
+const router = Router();
+router.use(authenticate);
+router.post('/', authorize(ROLES.SHOP_OWNER, ROLES.DELIVERY_PARTNER), requestValidator, validate, ctrl.request);
+router.post('/request', authorize(ROLES.SHOP_OWNER, ROLES.DELIVERY_PARTNER), requestValidator, validate, ctrl.request);
+router.get('/', ctrl.list);
+router.get('/my', ctrl.list);
+router.patch('/:id/process', authorize(ROLES.ADMIN), processValidator, validate, ctrl.process);
+module.exports = router;

@@ -1,0 +1,13 @@
+const { Router } = require('express');
+const ctrl = require('./analytics.controller');
+const { authenticate, authorize } = require('../../middleware/auth');
+const { ROLES } = require('../../utils/constants');
+const router = Router();
+router.use(authenticate, authorize(ROLES.ADMIN));
+router.get('/overview', ctrl.getOverview);
+router.get('/orders', ctrl.getOrderTrends);
+router.get('/revenue', ctrl.getRevenue);
+router.get('/shops/top', ctrl.getTopShops);
+router.get('/partners/performance', ctrl.getPartnerPerformance);
+router.get('/sla-fraud-radar', ctrl.getSlaAndFraudRadar);
+module.exports = router;

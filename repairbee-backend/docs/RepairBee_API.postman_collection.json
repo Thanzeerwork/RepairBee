@@ -1,0 +1,617 @@
+{
+  "info": {
+    "name": "🐝 RepairBee API",
+    "description": "Complete API collection for RepairBee — Two-sided repair marketplace.\n\nBase URL: http://localhost:3000/api/v1\n\nDefault Admin: admin@repairbee.com / Admin@123",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000/api/v1" },
+    { "key": "access_token", "value": "" },
+    { "key": "admin_token", "value": "" },
+    { "key": "shop_token", "value": "" },
+    { "key": "partner_token", "value": "" },
+    { "key": "order_id", "value": "" },
+    { "key": "shop_id", "value": "" },
+    { "key": "address_id", "value": "" },
+    { "key": "delivery_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Customer\",\n  \"email\": \"customer@example.com\",\n  \"password\": \"Test@1234\",\n  \"phone\": \"+919876543210\",\n  \"role\": \"customer\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if (json.data) {", "  pm.collectionVariables.set('access_token', json.data.accessToken);", "}"] } }]
+        },
+        {
+          "name": "Register Shop Owner",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Shop Owner\",\n  \"email\": \"shop@example.com\",\n  \"password\": \"Shop@1234\",\n  \"phone\": \"+919123456789\",\n  \"role\": \"shop_owner\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if (json.data) {", "  pm.collectionVariables.set('shop_token', json.data.accessToken);", "}"] } }]
+        },
+        {
+          "name": "Register Delivery Partner",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Delivery Partner\",\n  \"email\": \"partner@example.com\",\n  \"password\": \"Partner@1234\",\n  \"phone\": \"+919988776655\",\n  \"role\": \"delivery_partner\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if (json.data) {", "  pm.collectionVariables.set('partner_token', json.data.accessToken);", "}"] } }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@repairbee.com\",\n  \"password\": \"Admin@123\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if (json.data) {", "  pm.collectionVariables.set('admin_token', json.data.accessToken);", "}"] } }]
+        },
+        {
+          "name": "Google Auth",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/google",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"firebase-google-id-token\",\n  \"role\": \"customer\"\n}" }
+          }
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/send-otp",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+919876543210\"\n}" }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/verify-otp",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+919876543210\",\n  \"otp\": \"123456\"\n}" }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/forgot-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"customer@example.com\"\n}" }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/reset-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"reset-jwt-token\",\n  \"password\": \"NewPass@123\"\n}" }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/refresh-token",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"your-refresh-token\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": { "method": "GET", "url": "{{base_url}}/users/profile", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/profile",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+919876543211\"\n}" }
+          }
+        },
+        {
+          "name": "Get Addresses",
+          "request": { "method": "GET", "url": "{{base_url}}/users/addresses", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Add Address",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/users/addresses",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"label\": \"home\",\n  \"address_line\": \"45 Koramangala 5th Block\",\n  \"city\": \"Bangalore\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560095\",\n  \"lat\": 12.9279,\n  \"lng\": 77.6271,\n  \"is_default\": true\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if (json.data) {", "  pm.collectionVariables.set('address_id', json.data.id);", "}"] } }]
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/addresses/{{address_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"address_line\": \"Updated Address\"\n}" }
+          }
+        },
+        {
+          "name": "Set Default Address",
+          "request": { "method": "PATCH", "url": "{{base_url}}/users/addresses/{{address_id}}/default", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Delete Address",
+          "request": { "method": "DELETE", "url": "{{base_url}}/users/addresses/{{address_id}}", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "[Admin] List All Users",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/users?page=1&limit=20&role=customer", "host": ["{{base_url}}"], "path": ["users"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "role", "value": "customer" }] }, "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "[Admin] Block/Unblock User",
+          "request": { "method": "PATCH", "url": "{{base_url}}/users/:user_id/block", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Shops",
+      "item": [
+        {
+          "name": "Browse Shops",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/shops?lat=12.9716&lng=77.5946&category=electronics", "host": ["{{base_url}}"], "path": ["shops"], "query": [{ "key": "lat", "value": "12.9716" }, { "key": "lng", "value": "77.5946" }, { "key": "category", "value": "electronics" }] } }
+        },
+        {
+          "name": "Register Shop",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/shops/register",
+            "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"shop_name\": \"Fix It Electronics\",\n  \"description\": \"Expert phone and laptop repairs\",\n  \"category\": \"electronics\",\n  \"address\": \"12 MG Road\",\n  \"city\": \"Bangalore\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560001\",\n  \"lat\": 12.9716,\n  \"lng\": 77.5946,\n  \"opening_time\": \"09:00\",\n  \"closing_time\": \"21:00\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if (json.data) {", "  pm.collectionVariables.set('shop_id', json.data.id);", "}"] } }]
+        },
+        {
+          "name": "Get Shop by ID",
+          "request": { "method": "GET", "url": "{{base_url}}/shops/{{shop_id}}" }
+        },
+        {
+          "name": "Shop Dashboard",
+          "request": { "method": "GET", "url": "{{base_url}}/shops/dashboard", "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }] }
+        },
+        {
+          "name": "Update Shop",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/shops/update",
+            "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated description\"\n}" }
+          }
+        },
+        {
+          "name": "[Admin] Pending Shops",
+          "request": { "method": "GET", "url": "{{base_url}}/shops/pending", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "[Admin] Approve Shop",
+          "request": { "method": "PATCH", "url": "{{base_url}}/shops/{{shop_id}}/approve", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "[Admin] Set Commission",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/shops/{{shop_id}}/commission",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"commission_rate\": 0.15\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": { "method": "GET", "url": "{{base_url}}/products" }
+        },
+        {
+          "name": "Get Issues for Product",
+          "request": { "method": "GET", "url": "{{base_url}}/products/:product_id/issues" }
+        }
+      ]
+    },
+    {
+      "name": "Repairs",
+      "item": [
+        {
+          "name": "Create Repair Request",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/repairs",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"product_id\": \"PHONE_UUID\",\n  \"issue_ids\": [\"ISSUE_UUID\"],\n  \"description\": \"Screen cracked after drop\",\n  \"order_type\": \"sos\",\n  \"pickup_address_id\": \"{{address_id}}\",\n  \"delivery_address_id\": \"{{address_id}}\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if (json.data) {", "  pm.collectionVariables.set('order_id', json.data.id);", "}"] } }]
+        },
+        {
+          "name": "My Orders",
+          "request": { "method": "GET", "url": "{{base_url}}/repairs", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Order Details",
+          "request": { "method": "GET", "url": "{{base_url}}/repairs/{{order_id}}", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Select Shop",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/repairs/{{order_id}}/select-shop",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"shop_id\": \"{{shop_id}}\"\n}" }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": { "method": "PATCH", "url": "{{base_url}}/repairs/{{order_id}}/cancel", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Confirm Delivery",
+          "request": { "method": "POST", "url": "{{base_url}}/repairs/{{order_id}}/confirm-delivery", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/repairs/{{order_id}}/status",
+            "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"received_at_shop\",\n  \"note\": \"Device received\"\n}" }
+          }
+        },
+        {
+          "name": "[Shop] Incoming Orders",
+          "request": { "method": "GET", "url": "{{base_url}}/repairs/shop/incoming", "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }] }
+        },
+        {
+          "name": "[Admin] All Orders",
+          "request": { "method": "GET", "url": "{{base_url}}/repairs/admin/all", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "[Admin] Release Escrow",
+          "request": { "method": "POST", "url": "{{base_url}}/repairs/{{order_id}}/release-escrow", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Quotes",
+      "item": [
+        {
+          "name": "[Shop] Send Quote",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/quotes/{{order_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 1500,\n  \"estimated_time\": \"2 working days\",\n  \"warranty_days\": 30\n}" }
+          }
+        },
+        {
+          "name": "Approve Quote",
+          "request": { "method": "PATCH", "url": "{{base_url}}/quotes/{{order_id}}/approve", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Reject Quote",
+          "request": { "method": "PATCH", "url": "{{base_url}}/quotes/{{order_id}}/reject", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Razorpay Order",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/payments/create-order",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"order_id\": \"{{order_id}}\"\n}" }
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/payments/verify",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"razorpay_order_id\": \"order_xxx\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"signature_xxx\"\n}" }
+          }
+        },
+        {
+          "name": "Get Wallet Balance",
+          "request": { "method": "GET", "url": "{{base_url}}/payments/wallet", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Pay from Wallet",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/payments/wallet/pay",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"order_id\": \"{{order_id}}\"\n}" }
+          }
+        },
+        {
+          "name": "Top Up Wallet",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/payments/wallet/topup",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 500\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deliveries",
+      "item": [
+        {
+          "name": "[Admin] Assign Partner",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/deliveries/assign",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"partner_id\": \"PARTNER_UUID\"\n}" }
+          }
+        },
+        {
+          "name": "[Partner] My Jobs",
+          "request": { "method": "GET", "url": "{{base_url}}/deliveries/my-jobs", "header": [{ "key": "Authorization", "value": "Bearer {{partner_token}}" }] }
+        },
+        {
+          "name": "[Partner] Update Delivery Status",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/deliveries/{{delivery_id}}/status",
+            "header": [{ "key": "Authorization", "value": "Bearer {{partner_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"out_for_pickup\",\n  \"distance_km\": 5.2\n}" }
+          }
+        },
+        {
+          "name": "[Admin] Available Partners",
+          "request": { "method": "GET", "url": "{{base_url}}/deliveries/partners/available", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Get Chat History",
+          "request": { "method": "GET", "url": "{{base_url}}/chat/{{order_id}}/customer_shop", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/chat/{{order_id}}/customer_shop",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"When will my phone be ready?\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": { "method": "GET", "url": "{{base_url}}/notifications", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Mark As Read",
+          "request": { "method": "PATCH", "url": "{{base_url}}/notifications/:id/read", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Mark All As Read",
+          "request": { "method": "PATCH", "url": "{{base_url}}/notifications/read-all", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Ratings",
+      "item": [
+        {
+          "name": "Rate Shop",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/ratings/{{order_id}}/shop",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"stars\": 5,\n  \"review_text\": \"Excellent repair service!\"\n}" }
+          }
+        },
+        {
+          "name": "Rate Partner",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/ratings/{{order_id}}/partner",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"stars\": 5\n}" }
+          }
+        },
+        {
+          "name": "Get Shop Reviews",
+          "request": { "method": "GET", "url": "{{base_url}}/ratings/shop/{{shop_id}}", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Disputes",
+      "item": [
+        {
+          "name": "Raise Dispute",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/disputes/{{order_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Screen flickering after repair\",\n  \"description\": \"Detailed description of the issue\"\n}" }
+          }
+        },
+        {
+          "name": "My Disputes",
+          "request": { "method": "GET", "url": "{{base_url}}/disputes", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "[Admin] Resolve Dispute",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/disputes/:dispute_id/resolve",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"resolution_type\": \"re_repair\",\n  \"admin_notes\": \"Shop will redo the repair\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Warranty",
+      "item": [
+        {
+          "name": "Get Warranty Info",
+          "request": { "method": "GET", "url": "{{base_url}}/warranty/{{order_id}}", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Raise Warranty Claim",
+          "request": { "method": "POST", "url": "{{base_url}}/warranty/{{order_id}}/claim", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Earnings",
+      "item": [
+        {
+          "name": "[Shop] My Earnings",
+          "request": { "method": "GET", "url": "{{base_url}}/earnings", "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }] }
+        },
+        {
+          "name": "[Partner] My Earnings",
+          "request": { "method": "GET", "url": "{{base_url}}/earnings", "header": [{ "key": "Authorization", "value": "Bearer {{partner_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Withdrawals",
+      "item": [
+        {
+          "name": "Request Withdrawal",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/withdrawals",
+            "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 1000,\n  \"bank_account_name\": \"Fix It Electronics\",\n  \"bank_account_number\": \"1234567890\",\n  \"bank_ifsc\": \"HDFC0001234\",\n  \"bank_name\": \"HDFC Bank\"\n}" }
+          }
+        },
+        {
+          "name": "My Withdrawals",
+          "request": { "method": "GET", "url": "{{base_url}}/withdrawals", "header": [{ "key": "Authorization", "value": "Bearer {{shop_token}}" }] }
+        },
+        {
+          "name": "[Admin] Process Withdrawal",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/withdrawals/:id/process",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"processed\",\n  \"admin_note\": \"NEFT transferred\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promos",
+      "item": [
+        {
+          "name": "Validate Promo Code",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/promos/validate",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"FIRSTFIX\",\n  \"order_amount\": 1500\n}" }
+          }
+        },
+        {
+          "name": "[Admin] Create Promo",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/promos",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"WELCOME50\",\n  \"discount_type\": \"percent\",\n  \"discount_value\": 50,\n  \"min_order_amount\": 500,\n  \"max_discount_amount\": 200,\n  \"max_uses\": 1000\n}" }
+          }
+        },
+        {
+          "name": "[Admin] List Promos",
+          "request": { "method": "GET", "url": "{{base_url}}/promos", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Referrals",
+      "item": [
+        {
+          "name": "My Referral Code",
+          "request": { "method": "GET", "url": "{{base_url}}/referrals/my-code", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        },
+        {
+          "name": "Apply Referral Code",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/referrals/apply",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"TES83AB0A\"\n}" }
+          }
+        },
+        {
+          "name": "Referral Stats",
+          "request": { "method": "GET", "url": "{{base_url}}/referrals/stats", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Analytics (Admin)",
+      "item": [
+        {
+          "name": "Overview Dashboard",
+          "request": { "method": "GET", "url": "{{base_url}}/analytics/overview", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "Order Trends",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/analytics/orders?period=daily", "host": ["{{base_url}}"], "path": ["analytics", "orders"], "query": [{ "key": "period", "value": "daily" }] }, "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "Revenue Breakdown",
+          "request": { "method": "GET", "url": "{{base_url}}/analytics/revenue", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "Top Shops",
+          "request": { "method": "GET", "url": "{{base_url}}/analytics/shops/top", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        },
+        {
+          "name": "Partner Performance",
+          "request": { "method": "GET", "url": "{{base_url}}/analytics/partners/performance", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] }
+        }
+      ]
+    }
+  ]
+}

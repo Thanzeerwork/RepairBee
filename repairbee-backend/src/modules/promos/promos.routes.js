@@ -1,0 +1,15 @@
+const { Router } = require('express');
+const ctrl = require('./promos.controller');
+const { authenticate, authorize } = require('../../middleware/auth');
+const { validate } = require('../../middleware/validate');
+const { validatePromoValidator, createPromoValidator } = require('./promos.validators');
+const { ROLES } = require('../../utils/constants');
+const router = Router();
+router.use(authenticate);
+router.post('/validate', authorize(ROLES.CUSTOMER), validatePromoValidator, validate, ctrl.validate);
+router.get('/active', ctrl.listActive);
+router.post('/', authorize(ROLES.ADMIN), createPromoValidator, validate, ctrl.create);
+router.get('/', authorize(ROLES.ADMIN), ctrl.list);
+router.patch('/:id', authorize(ROLES.ADMIN), ctrl.update);
+router.delete('/:id', authorize(ROLES.ADMIN), ctrl.delete);
+module.exports = router;

@@ -1,0 +1,45 @@
+{
+  "name": "repairbee-backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "npx nodemon src/server.js",
+    "db:migrate": "node database/migrate.js",
+    "db:seed": "node database/migrate.js --seed",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "repair",
+    "marketplace",
+    "api"
+  ],
+  "author": "RepairBee",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": "RepairBee - Two-sided repair marketplace API",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1135.0",
+    "@supabase/supabase-js": "^2.116.0",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "express-validator": "^7.3.2",
+    "firebase-admin": "^14.4.0",
+    "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
+    "multer": "^2.4.0",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^10.0.9",
+    "pg": "^8.23.0",
+    "razorpay": "^2.9.8",
+    "socket.io": "^4.8.3",
+    "uuid": "^14.0.2",
+    "winston": "^3.19.0"
+  }
+}
