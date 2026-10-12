@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 
+const DEFAULT_MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '';
+
 interface SwiggyLiveMapProps {
   runnerName?: string;
   speedKmh?: number;
@@ -9,6 +11,7 @@ interface SwiggyLiveMapProps {
   shopName?: string;
   customerAddress?: string;
   height?: number;
+  mapboxToken?: string;
 }
 
 export default function SwiggyLiveMap({
@@ -18,10 +21,11 @@ export default function SwiggyLiveMap({
   shopName = 'Dr. Phone Certified Hub',
   customerAddress = 'Doorstep Delivery',
   height = 380,
+  mapboxToken = DEFAULT_MAPBOX_TOKEN,
 }: SwiggyLiveMapProps) {
   const webViewRef = useRef<WebView>(null);
 
-  // Generate the full HTML for Leaflet with Swiggy-themed CartoDB Voyager tiles & live scooter
+  // Generate the full HTML for Leaflet powered by Mapbox high-definition vector tiles & live scooter
   const generateMapHtml = () => `
 <!DOCTYPE html>
 <html>
@@ -167,15 +171,26 @@ export default function SwiggyLiveMap({
       attributionControl: true
     });
 
-    // Swiggy / Uber style clean CartoDB Voyager tiles (or Satellite)
-    var tileUrl = isSatellite
-      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    // High-resolution Retina @2x Mapbox vector tiles (with CartoDB Voyager fallback)
+    var mapboxToken = '${mapboxToken}';
+    var tileUrl = '';
+    if (mapboxToken) {
+      tileUrl = isSatellite
+        ? 'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=' + mapboxToken
+        : 'https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/512/{z}/{x}/{y}@2x?access_token=' + mapboxToken;
+    } else {
+      tileUrl = isSatellite
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    }
 
     L.tileLayer(tileUrl, {
-      maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '© OpenStreetMap, © CARTO'
+      maxZoom: 20,
+      tileSize: mapboxToken ? 512 : 256,
+      zoomOffset: mapboxToken ? -1 : 0,
+      attribution: mapboxToken
+        ? '© <a href="https://www.mapbox.com/" target="_blank">Mapbox</a> © <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a>'
+        : '© OpenStreetMap, © CARTO'
     }).addTo(map);
 
     // Zoom buttons in top right

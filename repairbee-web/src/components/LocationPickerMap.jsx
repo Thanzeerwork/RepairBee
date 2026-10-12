@@ -91,10 +91,20 @@ export default function LocationPickerMap({
 
     mapInstanceRef.current = map;
 
-    // OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
+    const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+
+    const tileUrl = mapboxToken
+      ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${mapboxToken}`
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+    // Mapbox Streets v12 (@2x Retina high-clarity with CartoDB fallback)
+    L.tileLayer(tileUrl, {
+      maxZoom: 20,
+      tileSize: mapboxToken ? 512 : 256,
+      zoomOffset: mapboxToken ? -1 : 0,
+      attribution: mapboxToken
+        ? '&copy; <a href="https://www.mapbox.com/" target="_blank">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a>'
+        : '&copy; OpenStreetMap contributors &copy; CARTO',
     }).addTo(map);
 
     // Add draggable pin marker
