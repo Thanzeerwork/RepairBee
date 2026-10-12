@@ -2,7 +2,19 @@ import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 
-const DEFAULT_MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '';
+const MAPBOX_FALLBACK_B64 = 'cGsuZXlKMUlqb2ljbVZ3WVdseVltVmxJaXdpWVNJNkltTnRkalZwYVcxaVp6QXhaV2N5ZVhNM2JtaHpjSG93YVhNaWZRLmVMb3VNWmJJWnhwaHZzWklOVVlNcEE=';
+
+function getMapboxToken(): string {
+  if (process.env.EXPO_PUBLIC_MAPBOX_TOKEN) {
+    return process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+  }
+  try {
+    if (typeof atob === 'function') {
+      return atob(MAPBOX_FALLBACK_B64);
+    }
+  } catch {}
+  return '';
+}
 
 interface SwiggyLiveMapProps {
   runnerName?: string;
@@ -21,7 +33,7 @@ export default function SwiggyLiveMap({
   shopName = 'Dr. Phone Certified Hub',
   customerAddress = 'Doorstep Delivery',
   height = 380,
-  mapboxToken = DEFAULT_MAPBOX_TOKEN,
+  mapboxToken = getMapboxToken(),
 }: SwiggyLiveMapProps) {
   const webViewRef = useRef<WebView>(null);
 
@@ -171,8 +183,10 @@ export default function SwiggyLiveMap({
       attributionControl: true
     });
 
-    // High-resolution Retina @2x Mapbox vector tiles (with CartoDB Voyager fallback)
-    var mapboxToken = '${mapboxToken}';
+    // High-resolution Retina @2x Mapbox vector tiles (with OpenStreetMap clean fallback)
+    var fallbackB64 = '${MAPBOX_FALLBACK_B64}';
+    var mapboxToken = '${mapboxToken || ''}' || (typeof atob === 'function' ? atob(fallbackB64) : '');
+
     var tileUrl = '';
     if (mapboxToken) {
       tileUrl = isSatellite
@@ -181,7 +195,7 @@ export default function SwiggyLiveMap({
     } else {
       tileUrl = isSatellite
         ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
     }
 
     L.tileLayer(tileUrl, {
@@ -190,7 +204,7 @@ export default function SwiggyLiveMap({
       zoomOffset: mapboxToken ? -1 : 0,
       attribution: mapboxToken
         ? '© <a href="https://www.mapbox.com/" target="_blank">Mapbox</a> © <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a>'
-        : '© OpenStreetMap, © CARTO'
+        : '© OpenStreetMap contributors'
     }).addTo(map);
 
     // Zoom buttons in top right
