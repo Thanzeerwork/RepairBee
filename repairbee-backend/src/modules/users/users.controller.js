@@ -27,7 +27,8 @@ class UsersController {
 
   async updateFcmToken(req, res, next) {
     try {
-      const result = await usersService.updateFcmToken(req.user.id, req.body.fcm_token);
+      const token = req.body.fcm_token || req.body.fcmToken || req.body.push_token || req.body.token;
+      const result = await usersService.updateFcmToken(req.user.id, token);
       return ApiResponse.success(res, result);
     } catch (error) { next(error); }
   }

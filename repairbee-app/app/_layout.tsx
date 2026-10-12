@@ -22,11 +22,15 @@ import {
 } from '@expo-google-fonts/inter';
 import { useAuthStore } from '../src/stores/authStore';
 import { Colors } from '../src/theme/tokens';
+import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '../src/utils/notifications';
 
 // Keep splash screen visible while loading assets
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const router = useRouter();
   const loadSession = useAuthStore((s) => s.loadSession);
 
   const [fontsLoaded] = useFonts({
@@ -47,9 +51,38 @@ export default function RootLayout() {
       if (fontsLoaded) {
         await SplashScreen.hideAsync();
       }
+      // Register device push token in background
+      registerForPushNotificationsAsync();
     }
     prepare();
   }, [fontsLoaded]);
+
+  // Handle incoming push notification interactions & deep-linking
+  useEffect(() => {
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.orderId && (data?.type === 'quote' || data?.target === 'quote')) {
+        router.push(`/quote/${data.orderId}`);
+      } else if (data?.orderId && (data?.type === 'tracking' || data?.target === 'tracking')) {
+        router.push(`/tracking/${data.orderId}`);
+      } else if (data?.orderId) {
+        router.push(`/order/${data.orderId}`);
+      } else if (data?.route) {
+        router.push(data.route as any);
+      }
+    });
+
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      if (__DEV__) {
+        console.log('🔔 [Foreground Notification Received]:', notification.request.content.title);
+      }
+    });
+
+    return () => {
+      responseSub.remove();
+      receivedSub.remove();
+    };
+  }, []);
 
   if (!fontsLoaded) {
     return null;

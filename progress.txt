@@ -239,6 +239,12 @@ The live platform is pre-seeded with 4 distinct roles for demonstration and eval
      real-time physical GPS broadcasts (socket.on('runner_location')) with seamless fallback.
    - Added tracking room telemetry events (join_tracking, runner_location_update) to backend
      gateway (chat.gateway.js) and deliveries service.
+10. Native Push Notifications & Alert Dispatcher Pipeline:
+   - Installed expo-notifications and expo-device with custom Android channels (orders, telemetry, general).
+   - Built mobile notification utility (src/utils/notifications.ts) for foreground banners and FCM/APNs token syncing.
+   - Connected notification response deep-linking in app/_layout.tsx to navigate directly to quotes or orders.
+   - Added device push token API endpoint in client.ts and flexible token handler in backend users controller.
+   - Enhanced Notifications screen (app/notifications.tsx) with live OS push service status and test push trigger.
 
 --------------------------------------------------------------------------------
 6. REMAINING TASKS & ROADMAP

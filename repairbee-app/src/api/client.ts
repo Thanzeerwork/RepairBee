@@ -249,6 +249,10 @@ class ApiClient {
     return this.client.patch('/notifications/read-all');
   }
 
+  updatePushToken(token: string) {
+    return this.client.patch('/users/fcm-token', { fcm_token: token });
+  }
+
   // Disputes
   raiseDispute(orderId: string, data: FormData) {
     return this.client.post(`/disputes/${orderId}`, data, {

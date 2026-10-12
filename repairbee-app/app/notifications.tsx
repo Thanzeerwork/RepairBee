@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import { Colors, Fonts, FontSizes, Spacing, Radius, Shadows } from '../src/theme/tokens';
 import { api } from '../src/api/client';
+import { triggerLocalNotification, registerForPushNotificationsAsync } from '../src/utils/notifications';
 
 interface NotificationItem {
   id: string;
@@ -142,6 +143,15 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handleSendTestPush = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await triggerLocalNotification({
+      title: '🐝 RepairBee Order Update',
+      body: 'Cleanroom diagnostic inspection complete! Quote is ready for approval.',
+      data: { type: 'quote', orderId: notifications[0]?.orderId || 'demo-order' },
+    });
+  };
+
   return (
     <>
       <Stack.Screen
@@ -165,6 +175,22 @@ export default function NotificationsScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         >
+          {/* OS Push Service Status Banner */}
+          <View style={styles.pushStatusBanner}>
+            <View style={styles.pushStatusLeft}>
+              <View style={styles.pushStatusIconWrap}>
+                <Sparkles size={16} color="#d97706" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pushStatusTitle}>OS Push Service Active</Text>
+                <Text style={styles.pushStatusSub}>Background alerts delivered to lockscreen</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.testPushButton} onPress={handleSendTestPush} activeOpacity={0.8}>
+              <Text style={styles.testPushText}>Test Push</Text>
+            </TouchableOpacity>
+          </View>
+
           {notifications.length === 0 ? (
             <View style={styles.emptyCard}>
               <Bell size={48} color={Colors.primary} />
@@ -304,5 +330,53 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     marginTop: 4,
+  },
+  pushStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fffbeb',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  pushStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  pushStatusIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pushStatusTitle: {
+    fontFamily: Fonts.headingSemiBold,
+    fontSize: FontSizes.bodySm,
+    color: '#92400e',
+  },
+  pushStatusSub: {
+    fontFamily: Fonts.body,
+    fontSize: 11,
+    color: '#b45309',
+    marginTop: 2,
+  },
+  testPushButton: {
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: Radius.full,
+  },
+  testPushText: {
+    fontFamily: Fonts.bodySemiBold,
+    fontSize: FontSizes.caption,
+    color: '#ffffff',
   },
 });
