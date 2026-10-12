@@ -141,8 +141,12 @@ The live platform is pre-seeded with 4 distinct roles for demonstration and eval
 ✓ 5. Order Tracking & 15-Stage Pipeline (app/order/, app/tracking/)
      - Visual vertical/horizontal progress timeline
      - Current stage badge with time estimates
-✓ 6. Live Runner GPS Tracking Map (app/tracking/)
-     - Real-time map displaying runner coordinates, delivery route, and ETA
+✓ 6. Swiggy-Style Live Runner GPS Tracking Map (app/tracking/)
+     - Replaced mock SVG canvas with authentic interactive Leaflet & CartoDB Voyager map
+     - Real city street network coordinates with road-snapped polyline navigation
+     - Signature Swiggy orange delivery scooter with animated pulsing radar waves
+     - Live turn-by-turn runner position glide, speed fluctuations, and dynamic ETA
+     - Interactive layer switch (Clean Street View vs High-Res Satellite View)
      - Socket.io live listener for position updates
 ✓ 7. Interactive Escrow Payment Modal (app/payment/)
      - Payment breakdown (Repair Cost, Platform Fee, Discounts)
@@ -214,6 +218,10 @@ The live platform is pre-seeded with 4 distinct roles for demonstration and eval
 5. Production Mobile API Targeting:
    - Updated mobile Axios client to automatically target the live Render cluster
      in production environments.
+6. Swiggy-Style Live Interactive Map Engine:
+   - Eliminated mock SVG canvas drawings from mobile app and upgraded web tracker.
+   - Integrated CartoDB Voyager pastel street tiles, real city road network polyline,
+     and animated delivery partner scooter with pulsing radar waves and speed tags.
 
 --------------------------------------------------------------------------------
 6. REMAINING TASKS & ROADMAP
