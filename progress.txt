@@ -226,6 +226,11 @@ The live platform is pre-seeded with 4 distinct roles for demonstration and eval
    - Built unified storage layer with AsyncStorage fallback for web and Expo environments.
    - Fixed premature session deletion during backend boot-up and cold starts.
    - Persisted serialized user profile and auth tokens with non-destructive background sync.
+8. Official Mapbox API Integration:
+   - Configured active Mapbox access token across mobile, web, admin, and backend environments.
+   - Upgraded mobile and web live runner maps to high-resolution Mapbox Navigation Day
+     and Satellite Streets @2x Retina vector tiles.
+   - Enhanced location picker with Mapbox Streets v12 styling.
 
 --------------------------------------------------------------------------------
 6. REMAINING TASKS & ROADMAP
