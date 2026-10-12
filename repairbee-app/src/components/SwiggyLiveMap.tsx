@@ -24,6 +24,7 @@ interface SwiggyLiveMapProps {
   customerAddress?: string;
   height?: number;
   mapboxToken?: string;
+  liveCoords?: { lat: number; lng: number } | null;
 }
 
 export default function SwiggyLiveMap({
@@ -34,8 +35,28 @@ export default function SwiggyLiveMap({
   customerAddress = 'Doorstep Delivery',
   height = 380,
   mapboxToken = getMapboxToken(),
+  liveCoords = null,
 }: SwiggyLiveMapProps) {
   const webViewRef = useRef<WebView>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Send real-time coordinate updates from Socket.io into the Mapbox Leaflet canvas
+  useEffect(() => {
+    if (liveCoords && liveCoords.lat && liveCoords.lng) {
+      const payload = JSON.stringify({
+        type: 'UPDATE_COORDS',
+        lat: liveCoords.lat,
+        lng: liveCoords.lng,
+        speed: speedKmh,
+      });
+
+      if (Platform.OS === 'web' && iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(payload, '*');
+      } else if (webViewRef.current) {
+        webViewRef.current.postMessage(payload);
+      }
+    }
+  }, [liveCoords?.lat, liveCoords?.lng, speedKmh]);
 
   // Generate the full HTML for Leaflet powered by Mapbox high-definition vector tiles & live scooter
   const generateMapHtml = () => `
@@ -101,101 +122,99 @@ export default function SwiggyLiveMap({
       font-size: 10px;
       font-weight: 800;
       padding: 2px 8px;
-      border-radius: 12px;
-      border: 1px solid #fc8019;
+      border-radius: 9999px;
       white-space: nowrap;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+      border: 1px solid #fc8019;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
       z-index: 12;
-      letter-spacing: 0.3px;
+      animation: tagBounce 3s infinite ease-in-out;
     }
 
-    /* Customer Pin */
-    .cust-pin {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #10b981, #059669);
-      border: 2.5px solid #ffffff;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-    }
-    .cust-pin-halo {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: rgba(16, 185, 129, 0.25);
-      top: -7px;
-      left: -7px;
-      animation: swiggyPulse 2.5s infinite ease-out;
-      pointer-events: none;
-    }
-
-    /* Workshop Pin */
     .shop-pin {
       width: 34px;
       height: 34px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      background: #3b82f6;
       border: 2.5px solid #ffffff;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
     }
 
-    /* Clean attribution & watermarks */
-    .leaflet-control-attribution {
-      font-size: 8px !important;
-      background: rgba(255,255,255,0.7) !important;
-      padding: 1px 4px !important;
+    .cust-pin {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #10b981;
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
     }
+
+    .cust-pin-halo {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.25);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      top: -8px;
+      left: -8px;
+      animation: swiggyPulse 2.5s infinite ease-out;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: #1e293b;
+      color: #f8fafc;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      border: 1px solid #334155;
+    }
+    .leaflet-popup-tip { background: #1e293b; }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
   <script>
-    // Real Bangalore road network coordinates
-    // Workshop (Indiranagar / MG Road) -> Koramangala 4th Block (Customer)
+    // Real City Road Waypoints (Bangalore: Indiranagar Hub -> Koramangala Doorstep)
     var waypoints = [
-      [12.9716, 77.5946], // Workshop Hub
-      [12.9680, 77.6015],
-      [12.9635, 77.6080],
-      [12.9580, 77.6135],
-      [12.9525, 77.6170],
-      [12.9460, 77.6195],
-      [12.9405, 77.6220],
-      [12.9352, 77.6245]  // Customer Doorstep
+      [12.9784, 77.6408], // Start: Workshop Hub (Indiranagar 100 Feet Rd)
+      [12.9715, 77.6350], // Waypoint 1: Domlur Flyover Corridor
+      [12.9592, 77.6285], // Waypoint 2: Intermediate Ring Road
+      [12.9470, 77.6250], // Waypoint 3: Ejipura Signal Link
+      [12.9352, 77.6245], // End: Customer Residence (Koramangala 4th Block)
     ];
 
+    var map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false,
+      fadeAnimation: true,
+      zoomAnimation: true
+    }).setView([12.9550, 77.6310], 13);
+
+    var mapboxToken = "${mapboxToken}";
     var isSatellite = ${satelliteView ? 'true' : 'false'};
 
-    // Initialize Leaflet Map
-    var map = L.map('map', {
-      center: [12.9530, 77.6130],
-      zoom: 14,
-      zoomControl: false,
-      attributionControl: true
-    });
-
-    // High-resolution Retina @2x Mapbox vector tiles (with OpenStreetMap clean fallback)
-    var fallbackB64 = '${MAPBOX_FALLBACK_B64}';
-    var mapboxToken = '${mapboxToken || ''}' || (typeof atob === 'function' ? atob(fallbackB64) : '');
-
-    var tileUrl = '';
+    // Official Mapbox Navigation Day vs Satellite Streets Vector Tiles
+    var tileUrl = "";
     if (mapboxToken) {
-      tileUrl = isSatellite
-        ? 'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=' + mapboxToken
-        : 'https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/512/{z}/{x}/{y}@2x?access_token=' + mapboxToken;
+      if (isSatellite) {
+        tileUrl = "https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=" + mapboxToken;
+      } else {
+        tileUrl = "https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/{z}/{x}/{y}@2x?access_token=" + mapboxToken;
+      }
     } else {
       tileUrl = isSatellite
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
     }
 
     L.tileLayer(tileUrl, {
@@ -203,7 +222,7 @@ export default function SwiggyLiveMap({
       tileSize: mapboxToken ? 512 : 256,
       zoomOffset: mapboxToken ? -1 : 0,
       attribution: mapboxToken
-        ? '© <a href="https://www.mapbox.com/" target="_blank">Mapbox</a> © <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a>'
+        ? '© Mapbox © OpenStreetMap'
         : '© OpenStreetMap contributors'
     }).addTo(map);
 
@@ -265,16 +284,19 @@ export default function SwiggyLiveMap({
       iconAnchor: [19, 19]
     });
 
-    var runnerMarker = L.marker(waypoints[2], { icon: runnerIcon, zIndexOffset: 1000 }).addTo(map);
+    var initialPos = ${liveCoords && liveCoords.lat && liveCoords.lng ? `[${liveCoords.lat}, ${liveCoords.lng}]` : 'waypoints[2]'};
+    var runnerMarker = L.marker(initialPos, { icon: runnerIcon, zIndexOffset: 1000 }).addTo(map);
 
     // Fit map bounds to encompass route comfortably
     map.fitBounds(fullRoute.getBounds(), { padding: [40, 40] });
 
-    // Smooth Live Runner Motion Simulation along the real roads
+    // Smooth Fallback Simulation along real roads when live GPS broadcast is idle
+    var hasLiveBroadcast = ${liveCoords && liveCoords.lat ? 'true' : 'false'};
     var progress = 0.35;
     var totalSegments = waypoints.length - 1;
 
     function advanceRunner() {
+      if (hasLiveBroadcast) return;
       progress += 0.015;
       if (progress > 0.98) progress = 0.35;
 
@@ -290,13 +312,35 @@ export default function SwiggyLiveMap({
 
       runnerMarker.setLatLng([curLat, curLng]);
 
-      // Update traveled polyline
       var traveledPoints = waypoints.slice(0, segIdx + 1);
       traveledPoints.push([curLat, curLng]);
       traveledRoute.setLatLngs(traveledPoints);
     }
 
-    setInterval(advanceRunner, 1500);
+    var simInterval = setInterval(advanceRunner, 1500);
+
+    // --- Real-Time Socket.io GPS Message Listener ---
+    function handleLocationMessage(event) {
+      try {
+        var rawData = event.data;
+        var data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+        if (data && data.type === 'UPDATE_COORDS' && data.lat && data.lng) {
+          hasLiveBroadcast = true;
+          runnerMarker.setLatLng([data.lat, data.lng]);
+          map.panTo([data.lat, data.lng], { animate: true, duration: 1.0 });
+
+          if (data.speed) {
+            var tagEl = document.querySelector('.swiggy-speed-tag');
+            if (tagEl) {
+              tagEl.innerHTML = '⚡ ${runnerName.split(' ')[0]} • ' + data.speed + ' km/h';
+            }
+          }
+        }
+      } catch (err) {}
+    }
+
+    window.addEventListener('message', handleLocationMessage);
+    document.addEventListener('message', handleLocationMessage);
 
     // Recenter function accessible from window
     window.recenterOnRunner = function() {
@@ -314,6 +358,7 @@ export default function SwiggyLiveMap({
     return (
       <View style={[styles.container, { height }]}>
         <iframe
+          ref={iframeRef}
           srcDoc={mapHtml}
           style={{
             width: '100%',

@@ -38,6 +38,8 @@ import {
 } from 'lucide-react-native';
 import { Colors, Fonts, FontSizes, Spacing, Radius, Shadows } from '../../src/theme/tokens';
 import { api } from '../../src/api/client';
+import { getSocket } from '../../src/api/socket';
+import type { Socket } from 'socket.io-client';
 import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -60,16 +62,82 @@ export default function LiveTrackingScreen() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Live Simulation state
+  // Live Real-Time & Simulation state
   const [etaMinutes, setEtaMinutes] = useState(14);
   const [progressRatio, setProgressRatio] = useState(0.42); // 0.0 to 1.0 along the route
   const [speedKmh, setSpeedKmh] = useState(28);
   const [satelliteView, setSatelliteView] = useState(false);
   const [runnerCoords, setRunnerCoords] = useState({ x: 175, y: 165 });
+  const [liveCoords, setLiveCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLiveSocketConnected, setIsLiveSocketConnected] = useState(false);
+  const [isPhysicalBroadcast, setIsPhysicalBroadcast] = useState(false);
 
   // Pulsing animation for runner GPS aura
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const runnerPosAnim = useRef(new Animated.Value(0.42)).current;
+
+  // Real-time GPS Telemetry link via Socket.io
+  useEffect(() => {
+    let socket: Socket | null = null;
+    let isMounted = true;
+
+    async function initTrackingSocket() {
+      try {
+        socket = await getSocket();
+
+        if (socket.connected) {
+          setIsLiveSocketConnected(true);
+          if (orderId) {
+            socket.emit('join_tracking', { orderId });
+          }
+        }
+
+        socket.on('connect', () => {
+          if (!isMounted) return;
+          setIsLiveSocketConnected(true);
+          if (orderId) {
+            socket?.emit('join_tracking', { orderId });
+          }
+        });
+
+        socket.on('disconnect', () => {
+          if (!isMounted) return;
+          setIsLiveSocketConnected(false);
+        });
+
+        socket.on('runner_location', (data: any) => {
+          if (!isMounted) return;
+          if (data && (data.orderId === orderId || !data.orderId)) {
+            if (data.lat && data.lng) {
+              setLiveCoords({ lat: Number(data.lat), lng: Number(data.lng) });
+            }
+            if (data.speed) {
+              setSpeedKmh(Math.round(Number(data.speed)));
+            }
+            if (data.etaMinutes) {
+              setEtaMinutes(Math.max(1, Math.round(Number(data.etaMinutes))));
+            }
+            setIsPhysicalBroadcast(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+        });
+      } catch (err) {
+        console.warn('Tracking socket error:', err);
+      }
+    }
+
+    initTrackingSocket();
+
+    return () => {
+      isMounted = false;
+      if (socket && orderId) {
+        socket.emit('leave_tracking', { orderId });
+        socket.off('runner_location');
+        socket.off('connect');
+        socket.off('disconnect');
+      }
+    };
+  }, [orderId]);
 
   // Load Order details
   useEffect(() => {
@@ -123,9 +191,11 @@ export default function LiveTrackingScreen() {
     return () => pulseLoop.stop();
   }, []);
 
-  // Live simulation: advance runner marker and tick countdown every 3 seconds
+  // Live simulation: advance runner marker and tick countdown if no physical broadcast is active
   useEffect(() => {
     const interval = setInterval(() => {
+      if (isPhysicalBroadcast) return; // Physical GPS updates take precedence
+
       setProgressRatio((prev) => {
         const next = prev >= 0.95 ? 0.95 : prev + 0.025;
         // Interpolate along route points
@@ -153,7 +223,7 @@ export default function LiveTrackingScreen() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isPhysicalBroadcast]);
 
   const handleCallRunner = () => {
     const phone = order?.runner_phone || '+919876543210';
@@ -199,9 +269,9 @@ export default function LiveTrackingScreen() {
         </TouchableOpacity>
 
         <View style={styles.orderBadgePill}>
-          <View style={styles.livePulseDot} />
+          <View style={[styles.livePulseDot, isPhysicalBroadcast && { backgroundColor: '#22c55e' }]} />
           <Text style={styles.orderBadgeText}>
-            LIVE GPS • #{order?.order_number || (orderId ? orderId.slice(0, 8).toUpperCase() : 'RB-8924')}
+            {isPhysicalBroadcast ? 'FIELD GPS BROADCAST' : 'LIVE RADAR'} • #{order?.order_number || (orderId ? orderId.slice(0, 8).toUpperCase() : 'RB-8924')}
           </Text>
         </View>
 
@@ -223,12 +293,17 @@ export default function LiveTrackingScreen() {
           shopName={order?.shop_name || 'Dr. Phone Certified Hub'}
           customerAddress={order?.customer_address || 'Doorstep Delivery'}
           height={MAP_HEIGHT}
+          liveCoords={liveCoords}
         />
 
         {/* Telemetry Accuracy Strip Overlay */}
         <View style={styles.accuracyStrip}>
-          <View style={styles.accuracyDot} />
-          <Text style={styles.accuracyText}>RTK High Precision • Telemetry Refreshing (3s)</Text>
+          <View style={[styles.accuracyDot, isPhysicalBroadcast && { backgroundColor: '#22c55e' }]} />
+          <Text style={styles.accuracyText}>
+            {isPhysicalBroadcast
+              ? 'RTK Field Link Active • Synced via Socket.io'
+              : 'RTK High Precision • Telemetry Refreshing (3s)'}
+          </Text>
         </View>
 
         {/* Recenter GPS Button */}

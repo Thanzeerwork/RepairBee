@@ -231,6 +231,14 @@ The live platform is pre-seeded with 4 distinct roles for demonstration and eval
    - Upgraded mobile and web live runner maps to high-resolution Mapbox Navigation Day
      and Satellite Streets @2x Retina vector tiles.
    - Enhanced location picker with Mapbox Streets v12 styling.
+9. Real-Time Socket.io Two-Way Messaging & Runner Telemetry Link:
+   - Built mobile Socket.io manager (src/api/socket.ts) with unified token authentication.
+   - Connected mobile Chat screen (app/chat/[orderId].tsx) for real-time incoming messages,
+     typing indicators, haptic alerts, and live sync badges.
+   - Upgraded mobile Live Tracking (app/tracking/[orderId].tsx) & SwiggyLiveMap to receive
+     real-time physical GPS broadcasts (socket.on('runner_location')) with seamless fallback.
+   - Added tracking room telemetry events (join_tracking, runner_location_update) to backend
+     gateway (chat.gateway.js) and deliveries service.
 
 --------------------------------------------------------------------------------
 6. REMAINING TASKS & ROADMAP

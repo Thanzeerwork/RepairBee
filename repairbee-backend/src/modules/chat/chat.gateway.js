@@ -97,6 +97,36 @@ function initializeSocket(httpServer) {
       logger.debug(`User ${socket.userId} left room ${room}`);
     });
 
+    // --- Live Runner GPS Telemetry ---
+    socket.on('join_tracking', ({ orderId }) => {
+      if (!orderId) return;
+      const room = `tracking_${orderId}`;
+      socket.join(room);
+      logger.debug(`User ${socket.userName} (${socket.userId}) joined tracking room ${room}`);
+      socket.emit('joined_tracking', { room, orderId });
+    });
+
+    socket.on('leave_tracking', ({ orderId }) => {
+      if (!orderId) return;
+      const room = `tracking_${orderId}`;
+      socket.leave(room);
+      logger.debug(`User ${socket.userId} left tracking room ${room}`);
+    });
+
+    socket.on('runner_location_update', ({ orderId, lat, lng, speed, heading, etaMinutes }) => {
+      if (!orderId || lat === undefined || lng === undefined) return;
+      const room = `tracking_${orderId}`;
+      io.to(room).emit('runner_location', {
+        orderId,
+        lat,
+        lng,
+        speed: speed || 24,
+        heading: heading || 0,
+        etaMinutes: etaMinutes || 12,
+        updatedAt: new Date().toISOString(),
+      });
+    });
+
     socket.on('disconnect', () => {
       logger.debug(`Socket disconnected: ${socket.userId}`);
     });

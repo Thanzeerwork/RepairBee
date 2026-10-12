@@ -1,14 +1,24 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Send, Paperclip, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { Send, Paperclip, Camera, Wifi, WifiOff } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { Colors, Fonts, FontSizes, Spacing, Radius, Shadows } from '../../src/theme/tokens';
 import { api } from '../../src/api/client';
 import { useAuthStore } from '../../src/stores/authStore';
+import { getSocket } from '../../src/api/socket';
+import type { Socket } from 'socket.io-client';
 
 interface ChatMessage {
   id: string;
@@ -27,30 +37,42 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [shopName, setShopName] = useState('Workshop');
-  const flatListRef = useRef<FlatList>(null);
-  const chatType = type || 'customer_shop';
+  const [isConnected, setIsConnected] = useState(false);
+  const [typingPartner, setTypingPartner] = useState<string | null>(null);
 
-  // Load live order info & chat messages from database
+  const flatListRef = useRef<FlatList>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const typingTimeoutRef = useRef<any>(null);
+
+  const isRunnerChat = type === 'runner' || type === 'customer_runner';
+  const chatType = isRunnerChat ? 'customer_runner' : 'customer_shop';
+
+  // 1. Load initial Order info & past messages from database
   useEffect(() => {
     if (!orderId) return;
 
-    // Load order for workshop name
+    // Load order for workshop or runner name
     api.getOrderById(orderId)
       .then((res) => {
-        if (res.data?.data?.shop_name) {
-          setShopName(res.data.data.shop_name);
+        const orderData = res.data?.data;
+        if (orderData) {
+          if (isRunnerChat && orderData.runner_name) {
+            setShopName(orderData.runner_name);
+          } else if (orderData.shop_name) {
+            setShopName(orderData.shop_name);
+          }
         }
       })
       .catch(() => {});
 
-    // Load chat history
+    // Load message history from REST API
     api.getChatMessages(orderId, chatType)
       .then((res) => {
         const raw = res.data?.data?.messages || res.data?.data || [];
         const mapped: ChatMessage[] = raw.map((m: any) => ({
-          id: m.id,
+          id: m.id || `msg_${Date.now()}_${Math.random()}`,
           senderId: m.sender_id,
-          senderRole: m.sender_role || (m.sender_id === user?.id ? 'customer' : 'shop'),
+          senderRole: m.sender_role || (m.sender_id === user?.id ? 'customer' : (isRunnerChat ? 'runner' : 'shop')),
           message: m.message,
           messageType: m.media_url ? 'image' : 'text',
           timestamp: m.sent_at || m.created_at || new Date().toISOString(),
@@ -63,16 +85,119 @@ export default function ChatScreen() {
       .finally(() => {
         setLoading(false);
       });
-  }, [orderId, chatType]);
+  }, [orderId, chatType, isRunnerChat]);
 
+  // 2. Establish live Socket.io connection & bind real-time event listeners
+  useEffect(() => {
+    let socket: Socket | null = null;
+    let isMounted = true;
+
+    async function initSocketChat() {
+      try {
+        socket = await getSocket();
+        socketRef.current = socket;
+
+        if (socket.connected) {
+          setIsConnected(true);
+          socket.emit('join_room', { orderId, chatType });
+        }
+
+        socket.on('connect', () => {
+          if (!isMounted) return;
+          setIsConnected(true);
+          socket?.emit('join_room', { orderId, chatType });
+        });
+
+        socket.on('disconnect', () => {
+          if (!isMounted) return;
+          setIsConnected(false);
+        });
+
+        // Handle incoming live message in real-time
+        socket.on('new_message', (msg: any) => {
+          if (!isMounted) return;
+          const mapped: ChatMessage = {
+            id: msg.id || `msg_${Date.now()}_${Math.random()}`,
+            senderId: msg.sender_id || msg.senderId,
+            senderRole: msg.sender_role || msg.senderRole || (msg.sender_id === user?.id ? 'customer' : (isRunnerChat ? 'runner' : 'shop')),
+            message: msg.message,
+            messageType: msg.media_url ? 'image' : 'text',
+            timestamp: msg.sent_at || msg.created_at || new Date().toISOString(),
+          };
+
+          setMessages((prev) => {
+            // Prevent duplicate insertion if message was already added optimistically
+            const exists = prev.some(
+              (m) =>
+                m.id === mapped.id ||
+                (m.message === mapped.message &&
+                  Math.abs(new Date(m.timestamp).getTime() - new Date(mapped.timestamp).getTime()) < 4000)
+            );
+            if (exists) return prev;
+            return [...prev, mapped];
+          });
+
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 150);
+        });
+
+        // Handle typing indicator from partner
+        socket.on('user_typing', ({ userId, userName, isTyping }: any) => {
+          if (!isMounted) return;
+          if (userId !== user?.id) {
+            setTypingPartner(isTyping ? userName || (isRunnerChat ? 'Courier Partner' : shopName) : null);
+          }
+        });
+      } catch (err) {
+        console.warn('Socket chat setup error:', err);
+      }
+    }
+
+    initSocketChat();
+
+    return () => {
+      isMounted = false;
+      if (socket) {
+        socket.emit('leave_room', { orderId, chatType });
+        socket.off('new_message');
+        socket.off('user_typing');
+        socket.off('connect');
+        socket.off('disconnect');
+      }
+    };
+  }, [orderId, chatType, user?.id, shopName, isRunnerChat]);
+
+  // Handle customer typing with automatic timeout
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+
+    if (socketRef.current?.connected && orderId) {
+      socketRef.current.emit('typing', { orderId, chatType, isTyping: true });
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        socketRef.current?.emit('typing', { orderId, chatType, isTyping: false });
+      }, 2000);
+    }
+  };
+
+  // Send message via real-time WebSocket or REST fallback
   const sendMessage = async () => {
     if (!inputText.trim() || sending) return;
     const text = inputText.trim();
     setInputText('');
     setSending(true);
 
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (socketRef.current?.connected && orderId) {
+      socketRef.current.emit('typing', { orderId, chatType, isTyping: false });
+    }
+
     const tempMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: `temp_${Date.now()}`,
       senderId: user?.id || 'customer-1',
       senderRole: 'customer',
       message: text,
@@ -83,9 +208,23 @@ export default function ChatScreen() {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      await api.sendChatMessage(orderId!, chatType, text);
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('send_message', {
+          orderId,
+          chatType,
+          message: text,
+        });
+      } else {
+        await api.sendChatMessage(orderId!, chatType, text);
+      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
-      // Message already in local UI
+      // Fallback to REST API
+      try {
+        await api.sendChatMessage(orderId!, chatType, text);
+      } catch (err) {
+        console.warn('Failed to send message via fallback:', err);
+      }
     } finally {
       setSending(false);
     }
@@ -131,6 +270,21 @@ export default function ChatScreen() {
         options={{
           headerTitle: shopName,
           headerShown: true,
+          headerRight: () => (
+            <View style={styles.headerStatusRow}>
+              {isConnected ? (
+                <View style={styles.connectedBadge}>
+                  <View style={styles.connectedDot} />
+                  <Text style={styles.connectedText}>Live</Text>
+                </View>
+              ) : (
+                <View style={styles.connectingBadge}>
+                  <ActivityIndicator size="small" color="#f59e0b" style={{ transform: [{ scale: 0.65 }] }} />
+                  <Text style={styles.connectingText}>Syncing</Text>
+                </View>
+              )}
+            </View>
+          ),
         }}
       />
       <KeyboardAvoidingView
@@ -140,8 +294,11 @@ export default function ChatScreen() {
       >
         {/* Order context bar */}
         <View style={styles.contextBar}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.contextText}>Order #{orderId?.slice(-6).toUpperCase()} • Verified Shop Channel</Text>
+          <View style={[styles.onlineDot, !isConnected && { backgroundColor: '#f59e0b' }]} />
+          <Text style={styles.contextText}>
+            Order #{orderId ? orderId.slice(0, 8).toUpperCase() : 'RB'} •{' '}
+            {isRunnerChat ? 'Delivery Partner Channel' : 'Certified Workshop Channel'}
+          </Text>
         </View>
 
         {loading ? (
@@ -163,7 +320,7 @@ export default function ChatScreen() {
                   Direct line with {shopName}
                 </Text>
                 <Text style={{ fontFamily: Fonts.body, fontSize: FontSizes.caption, color: Colors.textMuted, marginTop: 4, textAlign: 'center' }}>
-                  Ask questions, request photos, or check repair status directly.
+                  Ask questions, request photos, or check repair status in real-time.
                 </Text>
               </View>
             }
@@ -171,12 +328,20 @@ export default function ChatScreen() {
           />
         )}
 
+        {/* Typing indicator bubble */}
+        {typingPartner && (
+          <View style={styles.typingContainer}>
+            <View style={styles.typingDot} />
+            <Text style={styles.typingText}>{typingPartner} is typing...</Text>
+          </View>
+        )}
+
         {/* Input bar */}
         <View style={styles.inputBar}>
-          <TouchableOpacity style={styles.attachButton}>
+          <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
             <Paperclip size={20} color={Colors.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.attachButton}>
+          <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
             <Camera size={20} color={Colors.textMuted} />
           </TouchableOpacity>
           <TextInput
@@ -184,16 +349,21 @@ export default function ChatScreen() {
             placeholder="Type a message..."
             placeholderTextColor={Colors.textMuted}
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={handleInputChange}
             multiline
             maxLength={1000}
           />
           <TouchableOpacity
             style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={sendMessage}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || sending}
+            activeOpacity={0.8}
           >
-            <Send size={18} color={Colors.textInverse} />
+            {sending ? (
+              <ActivityIndicator size="small" color={Colors.textInverse} />
+            ) : (
+              <Send size={18} color={Colors.textInverse} />
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -203,6 +373,32 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  headerStatusRow: { marginRight: 8 },
+  connectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: '#86efac',
+  },
+  connectedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' },
+  connectedText: { fontFamily: Fonts.bodySemiBold, fontSize: 11, color: '#16a34a' },
+  connectingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  connectingText: { fontFamily: Fonts.bodySemiBold, fontSize: 11, color: '#d97706' },
   contextBar: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
     paddingHorizontal: Spacing.screenPadding, paddingVertical: 8,
@@ -235,6 +431,26 @@ const styles = StyleSheet.create({
   bubbleTextMe: { color: Colors.textInverse },
   bubbleTime: { fontFamily: Fonts.body, fontSize: FontSizes.tiny, color: Colors.textMuted, marginTop: 4, alignSelf: 'flex-end' },
   bubbleTimeMe: { color: 'rgba(255,255,255,0.7)' },
+  typingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: 6,
+    backgroundColor: Colors.surfaceDim,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+  },
+  typingText: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: FontSizes.caption,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.xs,
     paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm,
