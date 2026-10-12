@@ -18,16 +18,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Path,
-  Circle,
-  Rect,
-  Line,
-  G,
-  Defs,
-  LinearGradient,
-  Stop,
-} from 'react-native-svg';
+import SwiggyLiveMap from '../../src/components/SwiggyLiveMap';
 import {
   ArrowLeft,
   Navigation,
@@ -223,145 +214,21 @@ export default function LiveTrackingScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* SVG Map Canvas */}
-      <View style={[styles.mapContainer, satelliteView && styles.mapContainerSatellite]}>
-        <Svg width="100%" height={MAP_HEIGHT} viewBox="0 0 360 360">
-          <Defs>
-            <LinearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#d97706" stopOpacity="0.9" />
-              <Stop offset="100%" stopColor="#059669" stopOpacity="1" />
-            </LinearGradient>
-            <LinearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={satelliteView ? '#1e293b' : '#f1f5f9'} />
-              <Stop offset="100%" stopColor={satelliteView ? '#0f172a' : '#e2e8f0'} />
-            </LinearGradient>
-          </Defs>
+      {/* Real Swiggy-Style Live Interactive Map */}
+      <View style={styles.mapContainer}>
+        <SwiggyLiveMap
+          runnerName={order?.runner_name || 'Manoj Kumar'}
+          speedKmh={speedKmh}
+          satelliteView={satelliteView}
+          shopName={order?.shop_name || 'Dr. Phone Certified Hub'}
+          customerAddress={order?.customer_address || 'Doorstep Delivery'}
+          height={MAP_HEIGHT}
+        />
 
-          {/* Map Base Canvas */}
-          <Rect x="0" y="0" width="360" height="360" fill="url(#bgGrad)" />
-
-          {/* Green Parks / City Landmark Blocks */}
-          <Rect
-            x="20"
-            y="130"
-            width="65"
-            height="90"
-            rx="8"
-            fill={satelliteView ? '#143825' : '#e8f5e9'}
-            stroke={satelliteView ? '#1b4d32' : '#c8e6c9'}
-            strokeWidth="1"
-          />
-          <Rect
-            x="250"
-            y="40"
-            width="85"
-            height="65"
-            rx="8"
-            fill={satelliteView ? '#143825' : '#e8f5e9'}
-            stroke={satelliteView ? '#1b4d32' : '#c8e6c9'}
-            strokeWidth="1"
-          />
-
-          {/* Secondary Roads Grid */}
-          <Line x1="0" y1="90" x2="360" y2="90" stroke={satelliteView ? '#334155' : '#cbd5e1'} strokeWidth="4" />
-          <Line x1="0" y1="180" x2="360" y2="180" stroke={satelliteView ? '#334155' : '#cbd5e1'} strokeWidth="5" />
-          <Line x1="0" y1="270" x2="360" y2="270" stroke={satelliteView ? '#334155' : '#cbd5e1'} strokeWidth="4" />
-          <Line x1="80" y1="0" x2="80" y2="360" stroke={satelliteView ? '#334155' : '#cbd5e1'} strokeWidth="4" />
-          <Line x1="180" y1="0" x2="180" y2="360" stroke={satelliteView ? '#334155' : '#cbd5e1'} strokeWidth="6" />
-          <Line x1="280" y1="0" x2="280" y2="360" stroke={satelliteView ? '#334155' : '#cbd5e1'} strokeWidth="4" />
-
-          {/* Diagonal Arterial Highway */}
-          <Path
-            d="M 10 330 Q 150 180 340 40"
-            stroke={satelliteView ? '#475569' : '#94a3b8'}
-            strokeWidth="8"
-            fill="none"
-          />
-          <Path
-            d="M 10 330 Q 150 180 340 40"
-            stroke="#ffffff"
-            strokeWidth="1.5"
-            strokeDasharray="8,6"
-            fill="none"
-          />
-
-          {/* Active Navigation Polyline Route */}
-          <Path
-            d={`M 55 75 L 110 105 L 165 155 L 215 195 L 260 255 L 315 310`}
-            stroke="url(#routeGrad)"
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-          <Path
-            d={`M 55 75 L 110 105 L 165 155 L 215 195 L 260 255 L 315 310`}
-            stroke="#ffffff"
-            strokeWidth="2"
-            strokeDasharray="6,4"
-            fill="none"
-          />
-
-          {/* Traveled Route Glow */}
-          <Path
-            d={`M 55 75 L 110 105 L ${runnerCoords.x} ${runnerCoords.y}`}
-            stroke={Colors.primaryLight}
-            strokeWidth="8"
-            strokeOpacity="0.6"
-            fill="none"
-          />
-
-          {/* Origin Marker: Workshop */}
-          <G x={55} y={75}>
-            <Circle r="14" fill="#ffffff" stroke={Colors.primary} strokeWidth="3" />
-            <Circle r="6" fill={Colors.primary} />
-          </G>
-
-          {/* Destination Marker: Customer Doorstep */}
-          <G x={315} y={310}>
-            <Circle r="18" fill="#d1fae5" stroke={Colors.success} strokeWidth="3" />
-            <Circle r="8" fill={Colors.success} />
-          </G>
-
-          {/* Live Runner Marker */}
-          <G x={runnerCoords.x} y={runnerCoords.y}>
-            {/* Outer radar pulse aura */}
-            <Circle r="26" fill={Colors.primary} fillOpacity="0.22" />
-            <Circle r="16" fill="#ffffff" stroke={Colors.primary} strokeWidth="3" />
-            <Circle r="8" fill={Colors.primary} />
-          </G>
-        </Svg>
-
-        {/* Origin Label Callout */}
-        <View style={[styles.mapCallout, { top: 40, left: 16 }]}>
-          <Text style={styles.mapCalloutTitle}>🏬 Workshop Hub</Text>
-          <Text style={styles.mapCalloutSub} numberOfLines={1}>
-            {order?.shop_name || 'Dr. Phone Certified'}
-          </Text>
-        </View>
-
-        {/* Destination Label Callout */}
-        <View style={[styles.mapCallout, { bottom: 18, right: 16 }]}>
-          <Text style={[styles.mapCalloutTitle, { color: Colors.success }]}>📍 Your Doorstep</Text>
-          <Text style={styles.mapCalloutSub} numberOfLines={1}>
-            {order?.customer_address || 'Home Delivery'}
-          </Text>
-        </View>
-
-        {/* Live Runner Marker Float with Animated Compass Aura */}
-        <View
-          style={[
-            styles.runnerFloatBadge,
-            {
-              left: Math.max(20, Math.min(SCREEN_WIDTH - 150, runnerCoords.x * (SCREEN_WIDTH / 360) - 60)),
-              top: Math.max(70, Math.min(MAP_HEIGHT - 65, runnerCoords.y * (MAP_HEIGHT / 360) - 45)),
-            },
-          ]}
-        >
-          <View style={styles.runnerFloatRow}>
-            <Navigation size={12} color={Colors.textInverse} style={{ transform: [{ rotate: '45deg' }] }} />
-            <Text style={styles.runnerFloatText}>Manoj • {speedKmh} km/h</Text>
-          </View>
+        {/* Telemetry Accuracy Strip Overlay */}
+        <View style={styles.accuracyStrip}>
+          <View style={styles.accuracyDot} />
+          <Text style={styles.accuracyText}>RTK High Precision • Telemetry Refreshing (3s)</Text>
         </View>
 
         {/* Recenter GPS Button */}
@@ -372,12 +239,6 @@ export default function LiveTrackingScreen() {
         >
           <Compass size={20} color={Colors.primary} />
         </TouchableOpacity>
-
-        {/* Telemetry Accuracy Strip */}
-        <View style={styles.accuracyStrip}>
-          <View style={styles.accuracyDot} />
-          <Text style={styles.accuracyText}>RTK High Precision • Telemetry Refreshing (3s)</Text>
-        </View>
       </View>
 
       {/* Floating Bottom Details Card */}

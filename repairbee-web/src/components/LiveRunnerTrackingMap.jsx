@@ -49,8 +49,8 @@ const createRunnerMarkerIcon = (runnerName = 'Courier Partner') => {
           width: 58px;
           height: 58px;
           border-radius: 50%;
-          background: rgba(14, 165, 233, 0.25);
-          border: 1.5px solid rgba(14, 165, 233, 0.6);
+          background: rgba(252, 128, 25, 0.3);
+          border: 1.5px solid rgba(252, 128, 25, 0.75);
           animation: rb-pulse 2s infinite ease-out;
           top: -9px;
           left: -9px;
@@ -59,12 +59,12 @@ const createRunnerMarkerIcon = (runnerName = 'Courier Partner') => {
 
         <!-- Main Runner Badge -->
         <div style="
-          width: 40px;
-          height: 40px;
+          width: 42px;
+          height: 42px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #0284c7, #0369a1);
+          background: linear-gradient(135deg, #fc8019, #e05e00);
           border: 3px solid #ffffff;
-          box-shadow: 0 6px 18px rgba(2, 132, 199, 0.65);
+          box-shadow: 0 6px 18px rgba(252, 128, 25, 0.7);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -242,10 +242,11 @@ export default function LiveRunnerTrackingMap({
         attributionControl: false
       });
 
-      // OpenStreetMap High-Clarity Tile Layer (Completely free, crisp, watermark-free)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Swiggy / Uber style clean CartoDB Voyager tile layer
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
+        subdomains: 'abcd',
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
       }).addTo(map);
 
       // Add Zoom Control at bottom right
@@ -293,7 +294,7 @@ export default function LiveRunnerTrackingMap({
       }).addTo(map);
     }
 
-    // 4. Route Polyline
+    // 4. Route Polyline (Swiggy Vibrant Navigation Line)
     const routePoints = [
       [rLat, rLng],
       [custLat, custLng]
@@ -303,11 +304,11 @@ export default function LiveRunnerTrackingMap({
       polylineRef.current.setLatLngs(routePoints);
     } else {
       polylineRef.current = L.polyline(routePoints, {
-        color: '#0284c7',
-        weight: 4,
+        color: '#fc8019',
+        weight: 5,
         dashArray: '8, 8',
         lineCap: 'round',
-        opacity: 0.85
+        opacity: 0.95
       }).addTo(map);
     }
 
