@@ -222,6 +222,10 @@ The live platform is pre-seeded with 4 distinct roles for demonstration and eval
    - Eliminated mock SVG canvas drawings from mobile app and upgraded web tracker.
    - Integrated CartoDB Voyager pastel street tiles, real city road network polyline,
      and animated delivery partner scooter with pulsing radar waves and speed tags.
+7. Mobile Auth Persistence & Offline-First Hydration:
+   - Built unified storage layer with AsyncStorage fallback for web and Expo environments.
+   - Fixed premature session deletion during backend boot-up and cold starts.
+   - Persisted serialized user profile and auth tokens with non-destructive background sync.
 
 --------------------------------------------------------------------------------
 6. REMAINING TASKS & ROADMAP
