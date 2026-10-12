@@ -2,7 +2,7 @@
  * Login Screen — Email/password + Google OAuth
  * Matches Stitch design: Login Screen
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { Colors, Fonts, FontSizes, Spacing, Radius, Shadows } from '../../src/theme/tokens';
 import { useAuthStore } from '../../src/stores/authStore';
+import { storage } from '../../src/utils/storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,6 +22,12 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
 
+  useEffect(() => {
+    storage.getItem('lastEmail').then((saved) => {
+      if (saved) setEmail(saved);
+    });
+  }, []);
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setLocalError('Please enter both email and password.');
@@ -28,6 +35,7 @@ export default function LoginScreen() {
     }
     setLocalError('');
     try {
+      await storage.setItem('lastEmail', email.trim());
       await login(email.trim(), password);
       router.replace('/(tabs)');
     } catch (err: any) {
