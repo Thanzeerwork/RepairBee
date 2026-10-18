@@ -13,10 +13,13 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { Colors, Fonts, FontSizes, Spacing, Radius, Shadows } from '../../src/theme/tokens';
 import { useAuthStore } from '../../src/stores/authStore';
 import { storage } from '../../src/utils/storage';
+import { useGoogleAuth } from '../../src/utils/googleAuth';
+import { GoogleLogo } from '../../src/components/GoogleLogo';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
+  const { signInWithGoogle, isLoading: isGoogleLoading, error: googleError } = useGoogleAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +30,12 @@ export default function LoginScreen() {
       if (saved) setEmail(saved);
     });
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -43,7 +52,15 @@ export default function LoginScreen() {
     }
   };
 
-  const displayError = localError || error;
+  const handleGoogleLogin = async () => {
+    setLocalError('');
+    clearError();
+    await signInWithGoogle(() => {
+      router.replace('/(tabs)');
+    });
+  };
+
+  const displayError = localError || error || googleError;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -145,9 +162,20 @@ export default function LoginScreen() {
             </View>
 
             {/* Google Button */}
-            <TouchableOpacity style={styles.googleButton} activeOpacity={0.7}>
-              <Text style={styles.googleIcon}>G</Text>
-              <Text style={styles.googleText}>Continue with Google</Text>
+            <TouchableOpacity
+              style={[styles.googleButton, isGoogleLoading && styles.googleButtonDisabled]}
+              activeOpacity={0.7}
+              onPress={handleGoogleLogin}
+              disabled={isLoading || isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <>
+                  <GoogleLogo size={20} />
+                  <Text style={styles.googleText}>Continue with Google</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -215,6 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.surfaceBorder,
     backgroundColor: Colors.surface, gap: Spacing.sm,
   },
+  googleButtonDisabled: { opacity: 0.7 },
   googleIcon: {
     fontFamily: Fonts.headingBold, fontSize: FontSizes.titleMd, color: '#4285F4',
   },

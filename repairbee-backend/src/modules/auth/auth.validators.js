@@ -39,10 +39,20 @@ const loginValidator = [
 
 const googleAuthValidator = [
   body('idToken')
-    .notEmpty().withMessage('Google ID token is required'),
+    .optional()
+    .isString(),
+  body('accessToken')
+    .optional()
+    .isString(),
   body('role')
     .optional()
     .isIn(['customer', 'shop_owner', 'delivery_partner']).withMessage('Invalid role'),
+  body().custom((value) => {
+    if (!value?.idToken && !value?.accessToken) {
+      throw new Error('Either Google idToken or accessToken is required');
+    }
+    return true;
+  }),
 ];
 
 const sendOtpValidator = [

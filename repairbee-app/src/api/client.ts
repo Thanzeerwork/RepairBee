@@ -90,8 +90,9 @@ class ApiClient {
     return this.client.post('/auth/register', { ...data, role: 'customer' });
   }
 
-  googleAuth(idToken: string) {
-    return this.client.post('/auth/google', { idToken });
+  googleAuth(payload: string | { idToken?: string; accessToken?: string; role?: string }) {
+    const data = typeof payload === 'string' ? { idToken: payload } : payload;
+    return this.client.post('/auth/google', data);
   }
 
   sendOtp(phone: string) {

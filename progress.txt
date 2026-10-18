@@ -245,12 +245,20 @@ The live platform is pre-seeded with 4 distinct roles for demonstration and eval
    - Connected notification response deep-linking in app/_layout.tsx to navigate directly to quotes or orders.
    - Added device push token API endpoint in client.ts and flexible token handler in backend users controller.
    - Enhanced Notifications screen (app/notifications.tsx) with live OS push service status and test push trigger.
+11. Google Sign-In via Expo AuthSession:
+   - Installed expo-auth-session, expo-crypto, and expo-web-browser.
+   - Configured custom scheme (`repairbee://`) and created `src/utils/googleAuth.ts` with `useGoogleAuth` hook.
+   - Connected WebBrowser session completion (`WebBrowser.maybeCompleteAuthSession()`).
+   - Built official 4-color `GoogleLogo.tsx` SVG component.
+   - Connected Google Sign-In buttons in both `LoginScreen` (login.tsx) and `RegisterScreen` (register.tsx).
+   - Updated `authStore.ts` and `client.ts` to accept either `idToken` or `accessToken`.
+   - Updated backend `auth.service.js` and `auth.validators.js` to verify Google OAuth tokens via Google's official public OIDC endpoints (tokeninfo & userinfo) and Firebase fallback.
 
 --------------------------------------------------------------------------------
 6. REMAINING TASKS & ROADMAP
 --------------------------------------------------------------------------------
 [ ] Production Razorpay Webhook Secret configuration for live Indian UPI payments.
-[ ] Production Firebase Admin SDK service account key injection for Google Sign-In.
+[ ] Insert production Google Cloud OAuth Client IDs in repairbee-app/.env.
 [ ] EAS Build setup for generating standalone Android APK and iOS IPA binaries.
 [ ] Set up automated uptime ping worker (Cron) to prevent Render free instance spin-down.
 

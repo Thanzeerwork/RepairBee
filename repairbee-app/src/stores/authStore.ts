@@ -27,7 +27,7 @@ interface AuthState {
   // Actions
   login: (email: string, password: string) => Promise<void>;
   register: (data: { name: string; email: string; phone: string; password: string; referralCode?: string }) => Promise<void>;
-  googleAuth: (idToken: string) => Promise<void>;
+  googleAuth: (payload: string | { idToken?: string; accessToken?: string; role?: string }) => Promise<void>;
   logout: () => Promise<void>;
   loadSession: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -108,10 +108,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  googleAuth: async (idToken) => {
+  googleAuth: async (payload) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await api.googleAuth(idToken);
+      const res = await api.googleAuth(payload);
       const { user, accessToken, refreshToken } = res.data.data;
       const normalized = normalizeUser(user);
 
@@ -123,7 +123,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({ user: normalized, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Google sign-in failed.';
+      const message = extractErrorMessage(err, 'Google sign-in failed.');
       set({ error: message, isLoading: false });
       throw new Error(message);
     }

@@ -134,32 +134,80 @@ class AuthService {
 
   /**
    * Google OAuth login/register.
-   * Verifies the Google ID token via Firebase Admin SDK.
+   * Verifies the Google ID token or Access token via Google API or Firebase Admin SDK.
    */
-  async googleAuth({ idToken, role }) {
+  async googleAuth({ idToken, accessToken, role }) {
     try {
-      // For MVP without Firebase configured, we'll decode the token structure
-      // In production, use: const decodedToken = await admin.auth().verifyIdToken(idToken);
-      let decodedToken;
-      
-      try {
-        const admin = require('firebase-admin');
-        if (admin.apps.length === 0 && env.FIREBASE_PROJECT_ID) {
-          admin.initializeApp({
-            credential: admin.credential.cert({
-              projectId: env.FIREBASE_PROJECT_ID,
-              clientEmail: env.FIREBASE_CLIENT_EMAIL,
-              privateKey: env.FIREBASE_PRIVATE_KEY,
-            }),
-          });
-        }
-        decodedToken = await admin.auth().verifyIdToken(idToken);
-      } catch (firebaseError) {
-        logger.warn('Firebase not configured, Google Auth unavailable', { error: firebaseError.message });
-        throw ApiError.badRequest('Google authentication is not configured. Please use email/password login.');
+      let email, name, picture;
+
+      // In development mode, allow demo-google-id-token for local testing without cloud credentials
+      if (process.env.NODE_ENV !== 'production' && (idToken === 'demo-google-id-token' || accessToken === 'demo-google-access-token')) {
+        email = 'demo.google@repairbee.com';
+        name = 'Demo Google User';
+        picture = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
       }
 
-      const { email, name, picture } = decodedToken;
+      // 1. Verify idToken with Google tokeninfo endpoint
+      if (!email && idToken) {
+        try {
+          const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+          if (res.ok) {
+            const data = await res.json();
+            email = data.email?.toLowerCase();
+            name = data.name || data.given_name;
+            picture = data.picture;
+          } else {
+            logger.warn('Google tokeninfo returned non-200', { status: res.status });
+          }
+        } catch (tokenErr) {
+          logger.warn('Google tokeninfo verification failed', { error: tokenErr.message });
+        }
+      }
+
+      // 2. If email not obtained yet and accessToken is provided, verify via Google userinfo endpoint
+      if (!email && accessToken) {
+        try {
+          const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            email = data.email?.toLowerCase();
+            name = data.name || data.given_name;
+            picture = data.picture;
+          } else {
+            logger.warn('Google userinfo returned non-200', { status: res.status });
+          }
+        } catch (userInfoErr) {
+          logger.warn('Google userinfo verification failed', { error: userInfoErr.message });
+        }
+      }
+
+      // 3. Fallback: Firebase Admin if configured
+      if (!email && idToken && env.FIREBASE_PROJECT_ID) {
+        try {
+          const admin = require('firebase-admin');
+          if (admin.apps.length === 0) {
+            admin.initializeApp({
+              credential: admin.credential.cert({
+                projectId: env.FIREBASE_PROJECT_ID,
+                clientEmail: env.FIREBASE_CLIENT_EMAIL,
+                privateKey: env.FIREBASE_PRIVATE_KEY,
+              }),
+            });
+          }
+          const decoded = await admin.auth().verifyIdToken(idToken);
+          email = decoded.email?.toLowerCase();
+          name = decoded.name;
+          picture = decoded.picture;
+        } catch (firebaseErr) {
+          logger.warn('Firebase verifyIdToken failed', { error: firebaseErr.message });
+        }
+      }
+
+      if (!email) {
+        throw ApiError.unauthorized('Google authentication failed. Invalid or expired token.');
+      }
 
       // Check if user exists
       const existing = await db.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -169,6 +217,10 @@ class AuthService {
         user = existing.rows[0];
         if (!user.is_active) {
           throw ApiError.forbidden('Account has been deactivated');
+        }
+        if (!user.profile_pic_url && picture) {
+          await db.query('UPDATE users SET profile_pic_url = $1 WHERE id = $2', [picture, user.id]);
+          user.profile_pic_url = picture;
         }
       } else {
         // Register new user
@@ -190,7 +242,7 @@ class AuthService {
     } catch (error) {
       if (error instanceof ApiError) throw error;
       logger.error('Google auth error', { error: error.message });
-      throw ApiError.unauthorized('Google authentication failed');
+      throw ApiError.unauthorized('Google authentication failed: ' + error.message);
     }
   }
 

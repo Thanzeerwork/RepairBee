@@ -2,7 +2,7 @@
  * Register Screen — Create new customer account
  * Matches Stitch design: Register Screen
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -12,10 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Check, Gift } from 'lucide-react-native';
 import { Colors, Fonts, FontSizes, Spacing, Radius, Shadows } from '../../src/theme/tokens';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useGoogleAuth } from '../../src/utils/googleAuth';
+import { GoogleLogo } from '../../src/components/GoogleLogo';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register: signup, isLoading, clearError } = useAuthStore();
+  const { register: signup, isLoading, clearError, isAuthenticated } = useAuthStore();
+  const { signInWithGoogle, isLoading: isGoogleLoading, error: googleError } = useGoogleAuth();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -27,6 +30,12 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [localError, setLocalError] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated]);
 
   const updateField = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -77,6 +86,16 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleGoogleSignUp = async () => {
+    setLocalError('');
+    clearError();
+    await signInWithGoogle(() => {
+      router.replace('/(tabs)');
+    });
+  };
+
+  const displayError = localError || googleError;
+
   const fields = [
     { key: 'name', placeholder: 'Full Name', icon: User, keyboard: 'default' as const, autoComplete: 'name' as const },
     { key: 'email', placeholder: 'Email address', icon: Mail, keyboard: 'email-address' as const, autoComplete: 'email' as const },
@@ -102,9 +121,9 @@ export default function RegisterScreen() {
           <Text style={styles.heading}>Create Account</Text>
           <Text style={styles.subtitle}>Join RepairBee to get your devices repaired!</Text>
 
-          {localError ? (
+          {displayError ? (
             <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{localError}</Text>
+              <Text style={styles.errorText}>{displayError}</Text>
             </View>
           ) : null}
 
@@ -218,9 +237,20 @@ export default function RegisterScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity style={styles.googleButton} activeOpacity={0.7}>
-              <Text style={styles.googleIcon}>G</Text>
-              <Text style={styles.googleText}>Sign up with Google</Text>
+            <TouchableOpacity
+              style={[styles.googleButton, isGoogleLoading && { opacity: 0.7 }]}
+              activeOpacity={0.7}
+              onPress={handleGoogleSignUp}
+              disabled={isLoading || isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <>
+                  <GoogleLogo size={20} />
+                  <Text style={styles.googleText}>Sign up with Google</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
